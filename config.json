@@ -1,0 +1,16 @@
+{
+  "gmail":
+  {
+    "smtp":
+    {
+      "host": "smtp.gmail.com",
+      "port": 465
+    },
+
+    "imap":
+    {
+      "host": "imap.gmail.com",
+      "port": 993
+    }
+  }
+}
