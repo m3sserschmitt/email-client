@@ -9,6 +9,11 @@ import imaplib
 import re
 
 
+"""
+    Acest modul contine toate functionalitatile de citire si trimitere pentru email-uri
+"""
+
+
 class SendEmailServices:
     def __init__(self):
         self.__server = smtplib.SMTP_SSL()

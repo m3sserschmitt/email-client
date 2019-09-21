@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import json
 import threading
 
@@ -9,26 +10,36 @@ from email_services import ReadEmailServices
 from email_services import BasicEmailHeadersParser
 
 
+"""
+    Acest modul face legatura intre utilizator si functionalitatile de baza ale aplicatiei.
+    Interfata grafica preia comenzile utilizatorului iar mai apoi sunt procesate corespunzator
+"""
+
+
 class Application:
     def __init__(self, config_file):
-        self.__title = str()
-        self.__imap_host = str()
-        self.__smtp_host = str()
-        self.__imap_port = int()
-        self.__smtp_port = int()
-        self.__indexed_mails = dict()
-        self.__indexed_mails_count = dict()
+        self.__title = str()  # bara de titlu a ferestrei
+        self.__imap_host = str()  # adresa serverului IMAP
+        self.__smtp_host = str()  # adresa serverului SMTP
+        self.__imap_port = int()  # portul serviciului IMAP
+        self.__smtp_port = int()  # portul serviciului SMTP
+        self.__indexed_mails = dict()  # pentru  stocarea locala a fiecarui email citit
+        self.__indexed_mails_count = dict()  # numarul total e email-uri indexate
 
-        self.__import_settings(config_file)
+        self.__import_settings(config_file)  # se importa setarile pentru conectarea la server
 
+        # se creaza variabile pentru fiecare frame al interfetei grafice;
         self.__main_window = MainWindow()
         self.__login_screen = LoginScreen(self.__main_window)
         self.__write_email_screen = WriteEmailScreen(self.__main_window)
         self.__mailbox_screen = MailboxScreen(self.__main_window)
         self.__email_rendering_screen = EmailRenderingScreen(self.__main_window)
+
+        # se creaza cate un obiect al claselor de citire si trimitere a mail-urilor
         self.__send_email_services = SendEmailServices()
         self.__read_email_services = ReadEmailServices()
 
+        # functiile responsabile pentru randarea corecta a fiecarui frame;
         self.__setup_main_window()
         self.__setup_login_screen()
         self.__setup_mailbox_screen()
@@ -36,12 +47,12 @@ class Application:
         self.__setup_email_rendering_screen()
 
     def __setup_main_window(self):
-        self.__main_window.title(self.__title)
-        self.__main_window.minsize(400, 500)
+        # aceasta functie este responsabila pentru setarea unor proprietati ale ferestrei principale
+        self.__main_window.title(self.__title)  # seteaza titlul ferestrei
+        self.__main_window.minsize(400, 500)  # seteaza dimensiunile minime ale ferestrei
 
     def __setup_email_services(self):
-        # def connecting():
-        #     self.__login_screen.login_button["state"] = "disabled"
+        # realizeaza conectarea la serverele SMTP si SMTP
 
         imap_connected = self.__read_email_services.connect_to_server(self.__imap_host, self.__imap_port)
         smtp_connected = self.__send_email_services.connect_to_server(self.__smtp_host, self.__smtp_port)
@@ -49,9 +60,8 @@ class Application:
         if not imap_connected and not smtp_connected:
             self.__login_screen.status["text"] = "Connection error"
 
-        #     self.__login_screen.login_button["state"] = "normal"
-        #
-        # threading.Thread(target=connecting).start()
+    # urmatoarele 4 functii seteaza proprietatile frame-ului pentru login, pentru scrierea unui mail
+    # frame-ul de inbox respectiv frame-ul de randare al mail-urilor in html
 
     def __setup_login_screen(self):
         self.__login_screen.login_button["command"] = self.__login_screen_login_button
@@ -73,7 +83,9 @@ class Application:
         self.__email_rendering_screen.respond_button["command"] = self.__email_rendering_screen_respond_button
         self.__email_rendering_screen.redirect_button["command"] = self.__email_rendering_screen_redirect_button
 
-    def __login_screen_login_button(self):
+    # urmatoarele functii sunt responsabile pentru fiecare buton ce apare in interfata grafica;
+
+    def __login_screen_login_button(self):  # butonul "login"
         def logging_in():
             password = self.__login_screen.password.get()
             username = self.__login_screen.username.get()
@@ -109,6 +121,7 @@ class Application:
         threading.Thread(target=logging_in).start()
 
     def __populate_mailbox_screen(self, start_index, stop_index, selected_mailbox):
+        # aceasta functie se apeleaza cand se doreste listarea emailurilor dintr-un mailbox
         self.__mailbox_screen.mailboxes_list["state"] = "disabled"
         self.__mailbox_screen.refresh_button["state"] = "disabled"
         self.__mailbox_screen.more_button["state"] = "disabled"
@@ -135,6 +148,7 @@ class Application:
         self.__mailbox_screen.logout_button["state"] = "normal"
 
     def __mailbox_screen_mailbox_selected(self, event=None):
+        # se apeleaza cand un nou mailbox a fost selectat pentru listarea mailurilor
         selected_mailbox = self.__mailbox_screen.mailboxes_list.get()
         emails_count = self.__read_email_services.select_mailbox(selected_mailbox)
 
@@ -166,10 +180,11 @@ class Application:
                                                         )
                 emails_count -= 1
 
-    def __mailbox_screen_refresh_button(self):
+    def __mailbox_screen_refresh_button(self):  # butonul "Refresh"
         self.__mailbox_screen_mailbox_selected()
 
     def __mailbox_screen_item_selected_event(self, virtual_event=None):
+        # se apeleaza pentru afisarea mailului selectat
         def selecting_item():
             selected_mailbox = self.__mailbox_screen.mailboxes_list.get()
             mail_index = int(self.__mailbox_screen.mails_list.selection()[0])
@@ -184,11 +199,11 @@ class Application:
 
         threading.Thread(target=selecting_item).start()
 
-    def __mailbox_screen_write_email_button(self):
+    def __mailbox_screen_write_email_button(self):  # butonul "Write"
         self.__mailbox_screen.grid_remove()
         self.__write_email_screen.show()
 
-    def __mailbox_screen_show_more_button(self):
+    def __mailbox_screen_show_more_button(self):  # butonul "Show more"
         selected_mailbox = self.__mailbox_screen.mailboxes_list.get()
         local_email_count = self.__indexed_mails_count[selected_mailbox]
         start_index = local_email_count - len(self.__indexed_mails[selected_mailbox])
@@ -200,7 +215,7 @@ class Application:
         threading.Thread(target=self.__populate_mailbox_screen,
                          args=(start_index, stop_index, selected_mailbox)).start()
 
-    def __mailbox_screen_logout_button(self):
+    def __mailbox_screen_logout_button(self):  # butonul "Logout"
         self.__login_screen.clear_all()
         self.__mailbox_screen.clear_all()
         self.__write_email_screen.clear_all()
@@ -212,7 +227,7 @@ class Application:
         self.__mailbox_screen.grid_remove()
         self.__login_screen.show()
 
-    def __write_email_screen_send_email_button(self):
+    def __write_email_screen_send_email_button(self):  # butonul "Send"
         def sending_email():
             from_address = self.__write_email_screen.from_address.get()
             to_address = self.__write_email_screen.to_address.get()
@@ -232,16 +247,16 @@ class Application:
         self.__write_email_screen.grid_remove()
         self.__mailbox_screen.show()
 
-    def __write_email_screen_back_button(self):
+    def __write_email_screen_back_button(self):  # butonul "Back" din frame-ul pentru scriere
         self.__write_email_screen.grid_remove()
         self.__write_email_screen.clear_all()
         self.__mailbox_screen.show()
 
-    def __email_rendering_screen_back_button(self):
+    def __email_rendering_screen_back_button(self):  # butonul "Back" din frame-ul pentru citire
         self.__email_rendering_screen.grid_rmv()
         self.__mailbox_screen.show()
 
-    def __email_rendering_screen_respond_button(self):
+    def __email_rendering_screen_respond_button(self):  # butonul "Respond"
         selected_mailbox = self.__mailbox_screen.mailboxes_list.get()
         mail_index = int(self.__mailbox_screen.mails_list.selection()[0])
         local_mail_index = self.__indexed_mails_count[selected_mailbox] - mail_index
@@ -252,7 +267,7 @@ class Application:
         self.__write_email_screen.to_address.insert(0, mail_header["From"])
         self.__write_email_screen.subject.insert(0, "Re:" + mail_header["Subject"])
 
-    def __email_rendering_screen_redirect_button(self):
+    def __email_rendering_screen_redirect_button(self):  # butonul "Redirect"
         selected_mailbox = self.__mailbox_screen.mailboxes_list.get()
         mail_index = int(self.__mailbox_screen.mails_list.selection()[0])
         local_mail_index = self.__indexed_mails_count[selected_mailbox] - mail_index
@@ -265,6 +280,8 @@ class Application:
         self.__write_email_screen.text.insert(1.0, mail_content)
 
     def __import_settings(self, file: str):
+        # functia responsabila pentru importarea setarilor de conectare
+        # la servere
         with open(file, "r") as file:
             config = json.load(file)
             title = list(config.keys())[0]
@@ -276,6 +293,11 @@ class Application:
             self.__smtp_host = config["smtp"]["host"]
             self.__smtp_port = config["smtp"]["port"]
 
-    def run(self):
+    def run(self):  # functia principala a aplicatiei
         self.__login_screen.show()
         self.__main_window.mainloop()
+
+
+os.chdir(os.path.dirname(os.path.realpath(__file__)))  # se schimba directorul de lucru
+app = Application("config.json")  # se creaza un obiect al clasei principale
+app.run()  # se ruleaza aplicatia

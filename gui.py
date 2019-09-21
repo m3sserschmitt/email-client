@@ -7,18 +7,23 @@ from tkinterhtml import HtmlFrame
 from bs4 import BeautifulSoup
 
 
-class MainWindow(Tk):
+"""
+    Acest modul contine implementarea interfetei grafice
+"""
+
+
+class MainWindow(Tk):  # implemtarea ferestrei principale
     def __init__(self):
         super().__init__()
 
         self.__setup_root_window()
 
-    def __setup_root_window(self):
+    def __setup_root_window(self):  # setarea unor proprietati ale ferestrei
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
 
 
-class LoginScreen(ttk.Frame):  # ok
+class LoginScreen(ttk.Frame):  # implemantarea frame-ului de login
     def __init__(self, parent: MainWindow):
         super().__init__(parent)
 
@@ -30,7 +35,7 @@ class LoginScreen(ttk.Frame):  # ok
 
         self.__setup__login_screen()
 
-    def __setup__login_screen(self):
+    def __setup__login_screen(self):  # setarea proprietatilor de baza
         username_label = ttk.Label(self.login_group)
         password_label = ttk.Label(self.login_group)
 
@@ -66,7 +71,7 @@ class LoginScreen(ttk.Frame):  # ok
         self.password.delete(0, "end")
 
 
-class WriteEmailScreen(ttk.Frame):  # ok
+class WriteEmailScreen(ttk.Frame):  # implementarea frame-ului de scriere
     def __init__(self, parent: MainWindow):
         super().__init__(parent, padding=(3, 3))
 
@@ -118,7 +123,8 @@ class WriteEmailScreen(ttk.Frame):  # ok
         self.text.delete(1.0, "end")
 
 
-class MailboxScreen(Frame):  # ok
+class MailboxScreen(Frame):  # implementarea frame-ului pentru inbox in care se listeaza
+    # mail-urile
     def __init__(self, parent: MainWindow):
         super().__init__(parent)
 
@@ -162,7 +168,7 @@ class MailboxScreen(Frame):  # ok
         self.mails_list.delete(*self.mails_list.get_children())
 
 
-class EmailRenderingScreen(ttk.Frame):  # ok
+class EmailRenderingScreen(ttk.Frame):  # implementarea frame-ului pentru randarea mail-urilor html si text
     def __init__(self, parent: MainWindow):
         super().__init__(parent)
         self.__parent = parent
