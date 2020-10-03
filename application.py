@@ -128,11 +128,13 @@ class Application:
         self.__mailbox_screen.logout_button["state"] = "disabled"
 
         basic_headers_parser = BasicEmailHeadersParser()
+
         while start_index > stop_index:
             email_headers = self.__read_email_services.get_email_headers(start_index)
             basic_headers_parser.parse(email_headers)
 
             self.__indexed_mails[selected_mailbox].append(email_headers)
+
             self.__mailbox_screen.mails_list.insert("", "end", str(start_index),
                                                     text=basic_headers_parser.from_address,
                                                     values=(

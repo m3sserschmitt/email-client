@@ -214,7 +214,9 @@ class ReadEmailServices:
             return email_headers
 
         headers = parse_from_bytes(response[0][1]).headers
-        for [header_name, header_value] in headers.items():
+        for header_name, header_value in headers.items():
+            header_value = BasicEmailHeadersParser.process_charset(header_value)
+
             if header_name.lower() == "content-type":
                 header_value = header_value.split("boundary")[0]
                 email_headers.set_type(header_value)
@@ -277,45 +279,45 @@ class BasicEmailHeadersParser(object):
             self.parse(content)
 
     @staticmethod
-    def __process_charset(string: str):
+    def process_charset(string: str):
         _result = ""
         if not string:
             return _result
-        result = [string[j] for j in range(len(string)) if ord(string[j]) in range(65536)]
+        result = [string[j] for j in range(len(string)) if ord(string[j]) in range(880)]
         for char in result:
             _result += char
         return _result
 
     @staticmethod
-    def __parse_regular(string: str, max_length=35):
+    def parse_regular(string: str, max_length=35):
         if len(string) > max_length > 0:
             string = string[:max_length - 3] + "..."
 
         return string
 
     @staticmethod
-    def __parse_date(date: str) -> str:
+    def parse_date(date: str) -> str:
         date = date.split(" ")
         date = " ".join(date[:4])
 
         return date
 
     @staticmethod
-    def __contain_alphanumerics(string: str) -> bool:
+    def contain_alphanumerics(string: str) -> bool:
         for char in string:
             if char.isalnum():
                 return True
         return False
 
     @staticmethod
-    def __parse_address(address: str) -> str:
+    def parse_address(address: str) -> str:
         if not address:
             return "No address"
 
         if "<" in address and ">" in address:
             [name, email] = address.split("<", 1)
 
-            if not BasicEmailHeadersParser.__contain_alphanumerics(name):
+            if not BasicEmailHeadersParser.contain_alphanumerics(name):
                 email = email.split(">", 1)[0]
                 return email
 
@@ -325,19 +327,20 @@ class BasicEmailHeadersParser(object):
         return address
 
     @staticmethod
-    def __parse_subject(subject: str) -> str:
+    def parse_subject(subject: str) -> str:
         if not subject:
             return "No subject"
+
         return subject
 
     def parse(self, content: MIMEText) -> None:
         if not isinstance(content, MIMEText):
             raise BasicEmailHeadersParserException(f"wrong arg type: {type(content)}; MIMEText required")
 
-        self.from_address = self.__parse_regular(self.__parse_address(self.__process_charset(content["From"])))
-        self.subject = self.__parse_regular(self.__parse_subject(self.__process_charset(content["Subject"])))
-        self.date = self.__parse_regular(self.__parse_date(self.__process_charset(content["Date"])))
-        self.to_address = self.__parse_regular(self.__parse_address(self.__process_charset(content["To"])))
+        self.from_address = self.parse_regular(self.parse_address(self.process_charset(content["From"])))
+        self.subject = self.parse_regular(self.parse_subject(self.process_charset(content["Subject"])))
+        self.date = self.parse_regular(self.parse_date(self.process_charset(content["Date"])))
+        self.to_address = self.parse_regular(self.parse_address(self.process_charset(content["To"])))
 
 
 class SendEmailServicesException(Exception):
